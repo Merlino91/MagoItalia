@@ -59,7 +59,7 @@ headers = {
 @app.get('/', response_class=HTMLResponse)
 @app.get('/configure', response_class=HTMLResponse)
 async def configure(request: Request):
-    response = templates.TemplateResponse("configure.html", {"request": request})
+    response = templates.TemplateResponse(request, "configure.html")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
@@ -69,7 +69,7 @@ async def configure(request: Request):
 
 @app.get('/link_generator', response_class=HTMLResponse)
 async def configure(request: Request):
-    response = templates.TemplateResponse("old_config.html", {"request": request})
+    response = templates.TemplateResponse(request, "old_config.html")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
