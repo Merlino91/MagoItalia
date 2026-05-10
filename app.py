@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -59,7 +59,7 @@ headers = {
 @app.get('/', response_class=HTMLResponse)
 @app.get('/configure', response_class=HTMLResponse)
 async def configure(request: Request):
-    response = templates.TemplateResponse("configure.html", {"request": request})
+    response = templates.TemplateResponse(request, "configure.html")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
@@ -69,7 +69,7 @@ async def configure(request: Request):
 
 @app.get('/link_generator', response_class=HTMLResponse)
 async def configure(request: Request):
-    response = templates.TemplateResponse("old_config.html", {"request": request})
+    response = templates.TemplateResponse(request, "old_config.html")
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
@@ -85,7 +85,12 @@ async def get_manifest(user_settings:str, addon_url: str):
     async with AsyncSession(timeout=10) as client:
         response = await rotator.get(client, f"{addon_url}/manifest.json")
         print(response.status_code)
-        manifest = response.json()
+        if response.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Upstream Torrentio server blocked the request (HTTP {response.status_code})")
+        try:
+            manifest = response.json()
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=502, detail="Upstream Torrentio server returned invalid JSON")
 
     if debrid_sign != '':
         manifest['name'] = f'Torrentio 🇮🇹 - {debrid_sign}'
@@ -104,7 +109,12 @@ async def get_stream(user_settings: str, addon_url: str, type: str, id: str):
     rotator = HeaderRotator()
     async with AsyncSession(timeout=60) as client:
         response = await rotator.get(client, f"{addon_url}/stream/{type}/{id}.json")
-        full_streams = response.json()
+        if response.status_code != 200:
+            raise HTTPException(status_code=502, detail=f"Upstream Torrentio server blocked the request (HTTP {response.status_code})")
+        try:
+            full_streams = response.json()
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=502, detail="Upstream Torrentio server returned invalid JSON")
         # Filter streams
         streams = []
         check_list = []
